@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+   <title>ลงทะเบียนพนักงาน</title>
+   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+   <style>
+       body {
+           font-family: Arial, sans-serif;
+           padding: 20px;
+       }
+       input[type=text], input[type=email], select {
+           width: 100%;
+           padding: 12px 20px;
+           margin: 8px 0;
+           display: block;
+           border: 1px solid #ccc;
+           border-radius: 4px;
+           box-sizing: border-box;
+       }
+       button {
+           width: 100%;
+           background-color: #4CAF50;
+           color: white;
+           padding: 14px 20px;
+           margin: 8px 0;
+           border: none;
+           border-radius: 4px;
+           cursor: pointer;
+       }
+       button:hover {
+           background-color: #45a049;
+       }
+       h1 {
+           text-align: center;
+       }
+       label {
+           font-weight: bold;
+       }
+   </style>
+</head>
+<body>
+
+<h1>ลงทะเบียนพนักงาน</h1>
+<form id="registerForm">
+   <label for="department">แผนก:</label>
+   <select id="department" name="department" required>
+       <option value="">เลือกแผนก...</option>
+       <option value="ซ่อมบำรุง">ซ่อมบำรุง</option>
+       <option value="ฝ่ายผลิต">ฝ่ายผลิต</option>
+       <option value="เลเซอร์">เลเซอร์</option>
+       <option value="ฝ่ายขาย">ฝ่ายขาย</option>
+       <option value="ประกอบ1">ประกอบ1</option>
+       <option value="ประกอบ2">ประกอบ2</option>
+       <option value="ประกอบ3">ประกอบ3</option>
+       <option value="บัญชี-การเงิน">บัญชี-การเงิน</option>
+       <option value="ฝ่ายจัดซื้อ">ฝ่ายจัดซื้อ</option>
+       <option value="ฝ่ายบุคคล">ฝ่ายบุคคล</option>
+        <option value="ฝ่ายบุคคล">ขนส่ง</option>
+       <option value="ฝ่ายวิศวกรรม">ฝ่ายวิศวกรรม</option>
+       <option value="ฝ่ายแพ็คกิ้ง">แพ็คกิ้ง</option>
+       <option value="ขัดลบคม">ขัดลบคม</option>
+       <option value="หน้าร้าน">หน้าร้าน</option>
+       <option value="ติดตั้ง">ติดตั้ง</option>
+       <option value="สโตร์">สโตร์</option>
+       <option value="QC">QC</option>
+   </select>
+
+   <label for="name">ชื่อพนักงาน:</label>
+   <input type="text" id="name" name="name" placeholder="กรอกชื่อพนักงาน..." required>
+
+   <label for="employeeId">รหัสพนักงาน:</label>
+   <input type="text" id="employeeId" name="employeeId" placeholder="กรอกรหัสพนักงาน..." required>
+
+   <label for="email">อีเมล:</label>
+   <input type="email" id="email" name="email" placeholder="กรอกอีเมล...">
+
+   <button type="submit">ลงทะเบียน</button>
+</form>
+
+<script>
+   let userId, displayName, pictureUrl;
+
+   // เริ่มต้น LIFF
+   liff.init({ liffId: "2006299650-mYgagPnO" })  // แทนที่ด้วย LIFF ID ของคุณ
+       .then(() => {
+           if (!liff.isLoggedIn()) {
+               liff.login();
+           } else {
+               return liff.getProfile();
+           }
+       })
+       .then(profile => {
+           userId = profile.userId;
+           displayName = profile.displayName;
+           pictureUrl = profile.pictureUrl;
+           fetchUserData(userId);  // ดึงข้อมูลผู้ใช้เมื่อได้ userId
+       })
+       .catch(err => {
+           console.error("LIFF initialization failed", err);
+       });
+
+   // ฟังก์ชันดึงข้อมูลผู้ใช้จาก Google Script
+   function fetchUserData(userId) {
+       fetch("https://script.google.com/macros/s/AKfycbziwaFq0ZMdcmFrgNXVXvPLThTz1L5H1vip-dmbsNHIvD78xs01puhs0rYbaQjYfape/exec?userId=" + userId, {
+           mode: "no-cors"  // ใช้ no-cors ในการดึงข้อมูล
+       })
+           .then(response => response.json())
+           .then(data => {
+               if (data && data.status === 'success') {
+                   // แสดงข้อมูลในฟอร์ม
+                   document.getElementById("department").value = data.user.department || "";
+                   document.getElementById("name").value = data.user.name || "";
+                   document.getElementById("employeeId").value = data.user.employeeId || "";
+                   document.getElementById("email").value = data.user.email || "";
+               }
+           })
+           .catch(error => {
+               console.error("Error fetching user data:", error);
+           });
+   }
+
+   document.getElementById("registerForm").addEventListener("submit", function(event) {
+       event.preventDefault();
+
+       const data = {
+           displayName: displayName,
+           userId: userId,
+           pictureUrl: pictureUrl,
+           department: document.getElementById("department").value,
+           name: document.getElementById("name").value,
+           employeeId: document.getElementById("employeeId").value,
+           email: document.getElementById("email").value,
+           timestamp: new Date().toLocaleString("th-TH")
+       };
+
+       console.log("Sending data:", data);  // ล็อกข้อมูลที่ถูกส่งไป
+
+       fetch("https://script.google.com/macros/s/AKfycbziwaFq0ZMdcmFrgNXVXvPLThTz1L5H1vip-dmbsNHIvD78xs01puhs0rYbaQjYfape/exec", {
+           method: "POST",
+           mode: "no-cors",  // ปิดการตรวจสอบ CORS
+           headers: {
+               "Content-Type": "application/json"
+           },
+           body: JSON.stringify(data)
+       })
+       .then(() => {
+           Swal.fire({
+               title: 'สำเร็จ',
+               text: 'ข้อมูลถูกบันทึกเรียบร้อยแล้ว',
+               icon: 'success',
+               confirmButtonText: 'ปิด'
+           }).then(() => {
+               liff.closeWindow();
+           });
+       })
+       .catch(error => {
+           console.error("Error:", error);
+           Swal.fire({
+               title: 'เกิดข้อผิดพลาด',
+               text: 'ไม่สามารถบันทึกข้อมูลได้',
+               icon: 'error',
+               confirmButtonText: 'ตกลง'
+           });
+       });
+   });
+</script>
+
+</body>
+</html>
