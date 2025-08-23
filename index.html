@@ -230,21 +230,40 @@
 
        fetch("https://script.google.com/macros/s/AKfycbziwaFq0ZMdcmFrgNXVXvPLThTz1L5H1vip-dmbsNHIvD78xs01puhs0rYbaQjYfape/exec", {
            method: "POST",
-           mode: "no-cors",  // ปิดการตรวจสอบ CORS
            headers: {
                "Content-Type": "application/json"
            },
            body: JSON.stringify(data)
        })
-       .then(() => {
-           Swal.fire({
-               title: 'สำเร็จ',
-               text: 'ข้อมูลถูกบันทึกเรียบร้อยแล้ว',
-               icon: 'success',
-               confirmButtonText: 'ปิด'
-           }).then(() => {
-               liff.closeWindow();
-           });
+       .then(response => response.json())
+       .then(result => {
+           console.log("Server response:", result);
+           
+           if (result.status === 'success') {
+               Swal.fire({
+                   title: 'สำเร็จ',
+                   text: 'ข้อมูลถูกบันทึกเรียบร้อยแล้ว',
+                   icon: 'success',
+                   confirmButtonText: 'ปิด'
+               }).then(() => {
+                   liff.closeWindow();
+               });
+           } else if (result.status === 'error' && result.userExists) {
+               // ผู้ใช้ลงทะเบียนแล้ว
+               isUserRegistered = true;
+               showRegisteredStatus(result.existingData);
+               populateForm(result.existingData);
+               disableForm();
+               
+               Swal.fire({
+                   title: 'แจ้งเตือน',
+                   text: result.message || 'คุณได้ลงทะเบียนไปแล้ว',
+                   icon: 'info',
+                   confirmButtonText: 'ตกลง'
+               });
+           } else {
+               throw new Error(result.message || 'เกิดข้อผิดพลาด');
+           }
        })
        .catch(error => {
            console.error("Error:", error);
