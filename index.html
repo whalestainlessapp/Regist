@@ -138,52 +138,57 @@
 
    // ฟังก์ชันตรวจสอบข้อมูลผู้ใช้จาก Google Script
    function fetchUserData(userId) {
-       // ใช้ img tag หรือ script tag เพื่อหลีกเลี่ยง CORS
-       const url = "https://script.google.com/macros/s/AKfycbziwaFq0ZMdcmFrgNXVXvPLThTz1L5H1vip-dmbsNHIvD78xs01puhs0rYbaQjYfape/exec?userId=" + encodeURIComponent(userId) + "&callback=handleUserData";
+       const url = "https://script.google.com/macros/s/AKfycbziwaFq0ZMdcmFrgNXVXvPLThTz1L5H1vip-dmbsNHIvD78xs01puhs0rYbaQjYfape/exec?userId=" + encodeURIComponent(userId);
        
-       // สร้าง script element สำหรับ JSONP
-       const script = document.createElement('script');
-       script.src = url;
-       script.onerror = function() {
-           console.log("ไม่พบข้อมูลผู้ใช้ หรือเป็นผู้ใช้ใหม่");
-           isUserRegistered = false;
-           enableForm();
-       };
+       console.log("กำลังตรวจสอบข้อมูลผู้ใช้...");
        
-       // กำหนด timeout
-       setTimeout(() => {
-           if (!isUserRegistered) {
-               console.log("Timeout - สามารถลงทะเบียนได้");
-               enableForm();
-           }
-           if (document.head.contains(script)) {
-               document.head.removeChild(script);
-           }
-       }, 5000);
-       
-       document.head.appendChild(script);
-   }
-
-   // Callback function สำหรับ JSONP
-   window.handleUserData = function(data) {
-       try {
-           if (data && data.status === 'success' && data.user) {
+       fetch(url, {
+           method: "GET"
+       })
+       .then(response => response.json())
+       .then(data => {
+           console.log("Response from server:", data);
+           
+           if (data.status === 'success' && data.userExists === true && data.user) {
+               // ผู้ใช้ลงทะเบียนแล้ว
                console.log("พบข้อมูลผู้ใช้:", data.user);
                isUserRegistered = true;
                populateForm(data.user);
                showRegisteredStatus(data.user);
                disableForm();
+           } else if (data.status === 'success' && data.userExists === false) {
+               // ผู้ใช้ใหม่
+               console.log("ผู้ใช้ใหม่ - สามารถลงทะเบียนได้");
+               isUserRegistered = false;
+               enableForm();
            } else {
-               console.log("ไม่พบข้อมูลผู้ใช้");
+               // มีข้อผิดพลาด
+               console.log("เกิดข้อผิดพลาด:", data.message || "Unknown error");
                isUserRegistered = false;
                enableForm();
            }
-       } catch (error) {
-           console.log("Error processing user data");
-           isUserRegistered = false;
-           enableForm();
-       }
-   };
+       })
+       .catch(error => {
+           console.log("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้:", error);
+           // ถ้าเชื่อมต่อไม่ได้ ให้ตรวจสอบจาก localStorage
+           const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+           
+           if (registeredUsers.includes(userId)) {
+               console.log("ใช้ข้อมูลจาก localStorage - ผู้ใช้ลงทะเบียนแล้ว");
+               isUserRegistered = true;
+               const userData = JSON.parse(localStorage.getItem('userData_' + userId) || '{}');
+               if (userData.name) {
+                   populateForm(userData);
+                   showRegisteredStatus(userData);
+                   disableForm();
+               }
+           } else {
+               console.log("ใช้ข้อมูลจาก localStorage - ผู้ใช้ใหม่");
+               isUserRegistered = false;
+               enableForm();
+           }
+       });
+   }
 
    // ฟังก์ชันแสดงสถานะว่าลงทะเบียนแล้ว
    function showRegisteredStatus(userData) {
@@ -304,8 +309,24 @@
                icon: 'success',
                confirmButtonText: 'ปิด'
            }).then(() => {
-               // อัพเดตสถานะ
+               // อัพเดตสถานะและเก็บข้อมูลใน localStorage
                isUserRegistered = true;
+               
+               // เก็บ userId ในรายการผู้ลงทะเบียน
+               const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+               if (!registeredUsers.includes(userId)) {
+                   registeredUsers.push(userId);
+                   localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
+               }
+               
+               // เก็บข้อมูลผู้ใช้
+               localStorage.setItem('userData_' + userId, JSON.stringify({
+                   name: data.name,
+                   department: data.department,
+                   employeeId: data.employeeId,
+                   email: data.email
+               }));
+               
                showRegisteredStatus({
                    name: data.name,
                    department: data.department
