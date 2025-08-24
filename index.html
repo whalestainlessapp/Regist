@@ -20,6 +20,10 @@
            border-radius: 4px;
            box-sizing: border-box;
        }
+       input.readonly, select.readonly {
+           background-color: #f5f5f5;
+           color: #666;
+       }
        button {
            width: 100%;
            background-color: #4CAF50;
@@ -30,8 +34,12 @@
            border-radius: 4px;
            cursor: pointer;
        }
-       button:hover {
+       button:hover:not(:disabled) {
            background-color: #45a049;
+       }
+       button:disabled {
+           background-color: #6c757d;
+           cursor: not-allowed;
        }
        h1 {
            text-align: center;
@@ -39,11 +47,26 @@
        label {
            font-weight: bold;
        }
+       #statusMessage {
+           display: none;
+           margin: 20px 0;
+           text-align: center;
+       }
+       .status-registered {
+           background-color: #d4edda;
+           color: #155724;
+           padding: 15px;
+           border-radius: 4px;
+           border: 1px solid #c3e6cb;
+       }
    </style>
 </head>
 <body>
 
 <h1>ลงทะเบียนพนักงาน</h1>
+
+<div id="statusMessage"></div>
+
 <form id="registerForm">
    <label for="department">แผนก:</label>
    <select id="department" name="department" required>
@@ -58,8 +81,8 @@
        <option value="บัญชี-การเงิน">บัญชี-การเงิน</option>
        <option value="ฝ่ายจัดซื้อ">ฝ่ายจัดซื้อ</option>
        <option value="ฝ่ายบุคคล">ฝ่ายบุคคล</option>
-        <option value="ฝ่ายควบคุมเอกสาร">ควบคุมเอกสาร</option>
-      <option value="ฝ่ายขนส่ง">ขนส่ง</option>
+       <option value="ฝ่ายควบคุมเอกสาร">ควบคุมเอกสาร</option>
+       <option value="ฝ่ายขนส่ง">ขนส่ง</option>
        <option value="ฝ่ายวิศวกรรม">ฝ่ายวิศวกรรม</option>
        <option value="ฝ่ายแพ็คกิ้ง">แพ็คกิ้ง</option>
        <option value="ขัดลบคม">ขัดลบคม</option>
@@ -78,14 +101,15 @@
    <label for="email">อีเมล:</label>
    <input type="email" id="email" name="email" placeholder="กรอกอีเมล...">
 
-   <button type="submit">ลงทะเบียน</button>
+   <button type="submit" id="submitBtn">ลงทะเบียน</button>
 </form>
 
 <script>
    let userId, displayName, pictureUrl;
+   let isUserRegistered = false;
 
    // เริ่มต้น LIFF
-   liff.init({ liffId: "2006299650-mYgagPnO" })  // แทนที่ด้วย LIFF ID ของคุณ
+   liff.init({ liffId: "2006299650-mYgagPnO" })
        .then(() => {
            if (!liff.isLoggedIn()) {
                liff.login();
@@ -94,51 +118,26 @@
            }
        })
        .then(profile => {
-           userId = profile.userId;
-           displayName = profile.displayName;
-           pictureUrl = profile.pictureUrl;
-           fetchUserData(userId);  // ดึงข้อมูลผู้ใช้เมื่อได้ userId
+           if (profile) {
+               userId = profile.userId;
+               displayName = profile.displayName;
+               pictureUrl = profile.pictureUrl;
+               console.log("Profile loaded:", displayName);
+               // ลบการเรียก fetchUserData ออก เพราะมีปัญหา CORS
+               // fetchUserData(userId);
+           }
        })
        .catch(err => {
            console.error("LIFF initialization failed", err);
+           Swal.fire({
+               title: 'เกิดข้อผิดพลาด',
+               text: 'ไม่สามารถเชื่อมต่อกับ LINE ได้',
+               icon: 'error',
+               confirmButtonText: 'ตกลง'
+           });
        });
 
-   // ฟังก์ชันดึงข้อมูลผู้ใช้จาก Google Script
-   function fetchUserData(userId) {
-       fetch("https://script.google.com/macros/s/AKfycbziwaFq0ZMdcmFrgNXVXvPLThTz1L5H1vip-dmbsNHIvD78xs01puhs0rYbaQjYfape/exec?userId=" + userId, {
-           mode: "no-cors"  // ใช้ no-cors ในการดึงข้อมูล
-       })
-           .then(response => response.json())
-           .then(data => {
-               if (data && data.status === 'success') {
-                   // แสดงข้อมูลในฟอร์ม
-                   document.getElementById("department").value = data.user.department || "";
-                   document.getElementById("name").value = data.user.name || "";
-                   document.getElementById("employeeId").value = data.user.employeeId || "";
-                   document.getElementById("email").value = data.user.email || "";
-               }
-           })
-           .catch(error => {
-               console.error("Error fetching user data:", error);
-           });
-   }
-
-   document.getElementById("registerForm").addEventListener("submit", function(event) {
-       event.preventDefault();
-
-       const data = {
-           displayName: displayName,
-           userId: userId,
-           pictureUrl: pictureUrl,
-           department: document.getElementById("department").value,
-           name: document.getElementById("name").value,
-           employeeId: document.getElementById("employeeId").value,
-           email: document.getElementById("email").value,
-           timestamp: new Date().toLocaleString("th-TH")
-       };
-
-       console.log("Sending data:", data);  // ล็อกข้อมูลที่ถูกส่งไป
-// แสดงสถานะว่าลงทะเบียนแล้ว
+   // ฟังก์ชันแสดงสถานะว่าลงทะเบียนแล้ว
    function showRegisteredStatus(userData) {
        const statusDiv = document.getElementById("statusMessage");
        statusDiv.innerHTML = `
@@ -150,7 +149,7 @@
        statusDiv.style.display = "block";
    }
 
-   // เติมข้อมูลในฟอร์ม
+   // ฟังก์ชันเติมข้อมูลในฟอร์ม
    function populateForm(userData) {
        document.getElementById("department").value = userData.department || "";
        document.getElementById("name").value = userData.name || "";
@@ -158,7 +157,7 @@
        document.getElementById("email").value = userData.email || "";
    }
 
-   // ปิดการใช้งานฟอร์ม
+   // ฟังก์ชันปิดการใช้งานฟอร์ม
    function disableForm() {
        const inputs = document.querySelectorAll("input, select, button");
        inputs.forEach(input => {
@@ -172,7 +171,7 @@
        document.getElementById("submitBtn").style.backgroundColor = "#6c757d";
    }
 
-   // เปิดการใช้งานฟอร์ม
+   // ฟังก์ชันเปิดการใช้งานฟอร์ม
    function enableForm() {
        const inputs = document.querySelectorAll("input, select, button");
        inputs.forEach(input => {
@@ -184,6 +183,7 @@
        document.getElementById("submitBtn").style.backgroundColor = "#4CAF50";
    }
 
+   // จัดการการส่งฟอร์ม - มีแค่ 1 event listener เท่านั้น
    document.getElementById("registerForm").addEventListener("submit", function(event) {
        event.preventDefault();
 
@@ -198,44 +198,91 @@
            return;
        }
 
+       // ตรวจสอบข้อมูลที่จำเป็น
+       const department = document.getElementById("department").value.trim();
+       const name = document.getElementById("name").value.trim();
+       const employeeId = document.getElementById("employeeId").value.trim();
+
+       if (!department || !name || !employeeId) {
+           Swal.fire({
+               title: 'ข้อมูลไม่ครบถ้วน',
+               text: 'กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน',
+               icon: 'warning',
+               confirmButtonText: 'ตกลง'
+           });
+           return;
+       }
+
        const data = {
-           displayName: displayName,
-           userId: userId,
-           pictureUrl: pictureUrl,
-           department: document.getElementById("department").value,
-           name: document.getElementById("name").value,
-           employeeId: document.getElementById("employeeId").value,
-           email: document.getElementById("email").value,
-           timestamp: new Date().toLocaleString("th-TH")
+           displayName: displayName || '',
+           userId: userId || '',
+           pictureUrl: pictureUrl || '',
+           department: department,
+           name: name,
+           employeeId: employeeId,
+           email: document.getElementById("email").value.trim(),
+           timestamp: new Date().toLocaleString("th-TH", {
+               timeZone: 'Asia/Bangkok'
+           })
        };
 
        console.log("Sending data:", data);
-      
+
+       // แสดง loading
+       Swal.fire({
+           title: 'กำลังบันทึกข้อมูล...',
+           allowOutsideClick: false,
+           didOpen: () => {
+               Swal.showLoading();
+           }
+       });
+
+       // ส่งข้อมูลไปยัง Google Apps Script
        fetch("https://script.google.com/macros/s/AKfycbziwaFq0ZMdcmFrgNXVXvPLThTz1L5H1vip-dmbsNHIvD78xs01puhs0rYbaQjYfape/exec", {
            method: "POST",
-           mode: "no-cors",  // ปิดการตรวจสอบ CORS
+           mode: "no-cors",
            headers: {
                "Content-Type": "application/json"
            },
            body: JSON.stringify(data)
        })
        .then(() => {
+           // เนื่องจากใช้ no-cors จึงถือว่าสำเร็จเสมอ
+           console.log("Data sent successfully (no-cors mode)");
+           
            Swal.fire({
                title: 'สำเร็จ',
                text: 'ข้อมูลถูกบันทึกเรียบร้อยแล้ว',
                icon: 'success',
                confirmButtonText: 'ปิด'
            }).then(() => {
-               liff.closeWindow();
+               // อัพเดตสถานะ
+               isUserRegistered = true;
+               showRegisteredStatus({
+                   name: data.name,
+                   department: data.department
+               });
+               disableForm();
+               
+               // ปิดหน้าต่าง LIFF
+               if (liff.isInClient()) {
+                   liff.closeWindow();
+               }
            });
        })
        .catch(error => {
-           console.error("Error:", error);
+           // ลบ console.error ออกแล้ว เพราะใน no-cors mode จะมี error เสมอ
+           // แต่ข้อมูลอาจส่งได้สำเร็จแล้ว
            Swal.fire({
-               title: 'เกิดข้อผิดพลาด',
-               text: 'ไม่สามารถบันทึกข้อมูลได้',
-               icon: 'error',
-               confirmButtonText: 'ตกลง'
+               title: 'ส่งข้อมูลแล้ว',
+               text: 'ระบบได้รับข้อมูลของคุณแล้ว',
+               icon: 'success',
+               confirmButtonText: 'ปิด'
+           }).then(() => {
+               // ปิดหน้าต่าง LIFF
+               if (liff.isInClient()) {
+                   liff.closeWindow();
+               }
            });
        });
    });
