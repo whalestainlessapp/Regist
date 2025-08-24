@@ -118,79 +118,41 @@
            }
        })
        .then(profile => {
-           if (profile) {
-               userId = profile.userId;
-               displayName = profile.displayName;
-               pictureUrl = profile.pictureUrl;
-               console.log("Profile loaded:", displayName);
-               fetchUserData(userId);  // ตรวจสอบว่าผู้ใช้ลงทะเบียนแล้วหรือไม่
-           }
+           userId = profile.userId;
+           displayName = profile.displayName;
+           pictureUrl = profile.pictureUrl;
+           fetchUserData(userId);  // ดึงข้อมูลผู้ใช้เมื่อได้ userId
        })
        .catch(err => {
            console.error("LIFF initialization failed", err);
-           Swal.fire({
-               title: 'เกิดข้อผิดพลาด',
-               text: 'ไม่สามารถเชื่อมต่อกับ LINE ได้',
-               icon: 'error',
-               confirmButtonText: 'ตกลง'
-           });
        });
 
-   // ฟังก์ชันตรวจสอบข้อมูลผู้ใช้จาก Google Script
+   // ฟังก์ชันดึงข้อมูลผู้ใช้จาก Google Script
    function fetchUserData(userId) {
-       const url = "https://script.google.com/macros/s/AKfycbziwaFq0ZMdcmFrgNXVXvPLThTz1L5H1vip-dmbsNHIvD78xs01puhs0rYbaQjYfape/exec?userId=" + encodeURIComponent(userId);
-       
-       console.log("กำลังตรวจสอบข้อมูลผู้ใช้...");
-       
-       fetch(url, {
-           method: "GET"
-       })
-       .then(response => response.json())
-       .then(data => {
-           console.log("Response from server:", data);
-           
-           if (data.status === 'success' && data.userExists === true && data.user) {
-               // ผู้ใช้ลงทะเบียนแล้ว
-               console.log("พบข้อมูลผู้ใช้:", data.user);
-               isUserRegistered = true;
-               populateForm(data.user);
-               showRegisteredStatus(data.user);
-               disableForm();
-           } else if (data.status === 'success' && data.userExists === false) {
-               // ผู้ใช้ใหม่
-               console.log("ผู้ใช้ใหม่ - สามารถลงทะเบียนได้");
-               isUserRegistered = false;
-               enableForm();
-           } else {
-               // มีข้อผิดพลาด
-               console.log("เกิดข้อผิดพลาด:", data.message || "Unknown error");
-               isUserRegistered = false;
-               enableForm();
-           }
-       })
-       .catch(error => {
-           console.log("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้:", error);
-           // ถ้าเชื่อมต่อไม่ได้ ให้ตรวจสอบจาก localStorage
-           const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-           
-           if (registeredUsers.includes(userId)) {
-               console.log("ใช้ข้อมูลจาก localStorage - ผู้ใช้ลงทะเบียนแล้ว");
-               isUserRegistered = true;
-               const userData = JSON.parse(localStorage.getItem('userData_' + userId) || '{}');
-               if (userData.name) {
-                   populateForm(userData);
-                   showRegisteredStatus(userData);
+       fetch("https://script.google.com/macros/s/AKfycbziwaFq0ZMdcmFrgNXVXvPLThTz1L5H1vip-dmbsNHIvD78xs01puhs0rYbaQjYfape/exec?userId=" + userId)
+           .then(response => response.json())
+           .then(data => {
+               console.log("Response from server:", data);
+               
+               if (data && data.status === 'success' && data.userExists === true && data.user) {
+                   // ผู้ใช้ลงทะเบียนแล้ว
+                   isUserRegistered = true;
+                   populateForm(data.user);
+                   showRegisteredStatus(data.user);
                    disableForm();
+               } else {
+                   // ผู้ใช้ใหม่
+                   isUserRegistered = false;
                }
-           } else {
-               console.log("ใช้ข้อมูลจาก localStorage - ผู้ใช้ใหม่");
+           })
+           .catch(error => {
+               console.error("Error fetching user data:", error);
+               // ถ้าเกิด error ให้ถือว่าเป็นผู้ใช้ใหม่
                isUserRegistered = false;
-               enableForm();
-           }
-       });
+           });
    }
 
-   // ฟังก์ชันแสดงสถานะว่าลงทะเบียนแล้ว
+   // แสดงสถานะว่าลงทะเบียนแล้ว
    function showRegisteredStatus(userData) {
        const statusDiv = document.getElementById("statusMessage");
        statusDiv.innerHTML = `
@@ -202,7 +164,7 @@
        statusDiv.style.display = "block";
    }
 
-   // ฟังก์ชันเติมข้อมูลในฟอร์ม
+   // เติมข้อมูลในฟอร์ม
    function populateForm(userData) {
        document.getElementById("department").value = userData.department || "";
        document.getElementById("name").value = userData.name || "";
@@ -210,7 +172,7 @@
        document.getElementById("email").value = userData.email || "";
    }
 
-   // ฟังก์ชันปิดการใช้งานฟอร์ม
+   // ปิดการใช้งานฟอร์ม
    function disableForm() {
        const inputs = document.querySelectorAll("input, select, button");
        inputs.forEach(input => {
@@ -224,7 +186,7 @@
        document.getElementById("submitBtn").style.backgroundColor = "#6c757d";
    }
 
-   // ฟังก์ชันเปิดการใช้งานฟอร์ม
+   // เปิดการใช้งานฟอร์ม
    function enableForm() {
        const inputs = document.querySelectorAll("input, select, button");
        inputs.forEach(input => {
@@ -236,7 +198,6 @@
        document.getElementById("submitBtn").style.backgroundColor = "#4CAF50";
    }
 
-   // จัดการการส่งฟอร์ม - มีแค่ 1 event listener เท่านั้น
    document.getElementById("registerForm").addEventListener("submit", function(event) {
        event.preventDefault();
 
@@ -251,107 +212,44 @@
            return;
        }
 
-       // ตรวจสอบข้อมูลที่จำเป็น
-       const department = document.getElementById("department").value.trim();
-       const name = document.getElementById("name").value.trim();
-       const employeeId = document.getElementById("employeeId").value.trim();
-
-       if (!department || !name || !employeeId) {
-           Swal.fire({
-               title: 'ข้อมูลไม่ครบถ้วน',
-               text: 'กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน',
-               icon: 'warning',
-               confirmButtonText: 'ตกลง'
-           });
-           return;
-       }
-
        const data = {
-           displayName: displayName || '',
-           userId: userId || '',
-           pictureUrl: pictureUrl || '',
-           department: department,
-           name: name,
-           employeeId: employeeId,
-           email: document.getElementById("email").value.trim(),
-           timestamp: new Date().toLocaleString("th-TH", {
-               timeZone: 'Asia/Bangkok'
-           })
+           displayName: displayName,
+           userId: userId,
+           pictureUrl: pictureUrl,
+           department: document.getElementById("department").value,
+           name: document.getElementById("name").value,
+           employeeId: document.getElementById("employeeId").value,
+           email: document.getElementById("email").value,
+           timestamp: new Date().toLocaleString("th-TH")
        };
 
        console.log("Sending data:", data);
-
-       // แสดง loading
-       Swal.fire({
-           title: 'กำลังบันทึกข้อมูล...',
-           allowOutsideClick: false,
-           didOpen: () => {
-               Swal.showLoading();
-           }
-       });
-
-       // ส่งข้อมูลไปยัง Google Apps Script
+      
        fetch("https://script.google.com/macros/s/AKfycbziwaFq0ZMdcmFrgNXVXvPLThTz1L5H1vip-dmbsNHIvD78xs01puhs0rYbaQjYfape/exec", {
            method: "POST",
-           mode: "no-cors",
+           mode: "no-cors",  // ปิดการตรวจสอบ CORS
            headers: {
                "Content-Type": "application/json"
            },
            body: JSON.stringify(data)
        })
        .then(() => {
-           // เนื่องจากใช้ no-cors จึงถือว่าสำเร็จเสมอ
-           console.log("Data sent successfully (no-cors mode)");
-           
            Swal.fire({
                title: 'สำเร็จ',
                text: 'ข้อมูลถูกบันทึกเรียบร้อยแล้ว',
                icon: 'success',
                confirmButtonText: 'ปิด'
            }).then(() => {
-               // อัพเดตสถานะและเก็บข้อมูลใน localStorage
-               isUserRegistered = true;
-               
-               // เก็บ userId ในรายการผู้ลงทะเบียน
-               const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-               if (!registeredUsers.includes(userId)) {
-                   registeredUsers.push(userId);
-                   localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
-               }
-               
-               // เก็บข้อมูลผู้ใช้
-               localStorage.setItem('userData_' + userId, JSON.stringify({
-                   name: data.name,
-                   department: data.department,
-                   employeeId: data.employeeId,
-                   email: data.email
-               }));
-               
-               showRegisteredStatus({
-                   name: data.name,
-                   department: data.department
-               });
-               disableForm();
-               
-               // ปิดหน้าต่าง LIFF
-               if (liff.isInClient()) {
-                   liff.closeWindow();
-               }
+               liff.closeWindow();
            });
        })
        .catch(error => {
-           // ลบ console.error ออกแล้ว เพราะใน no-cors mode จะมี error เสมอ
-           // แต่ข้อมูลอาจส่งได้สำเร็จแล้ว
+           console.error("Error:", error);
            Swal.fire({
-               title: 'ส่งข้อมูลแล้ว',
-               text: 'ระบบได้รับข้อมูลของคุณแล้ว',
-               icon: 'success',
-               confirmButtonText: 'ปิด'
-           }).then(() => {
-               // ปิดหน้าต่าง LIFF
-               if (liff.isInClient()) {
-                   liff.closeWindow();
-               }
+               title: 'เกิดข้อผิดพลาด',
+               text: 'ไม่สามารถบันทึกข้อมูลได้',
+               icon: 'error',
+               confirmButtonText: 'ตกลง'
            });
        });
    });
