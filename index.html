@@ -123,8 +123,7 @@
                displayName = profile.displayName;
                pictureUrl = profile.pictureUrl;
                console.log("Profile loaded:", displayName);
-               // ลบการเรียก fetchUserData ออก เพราะมีปัญหา CORS
-               // fetchUserData(userId);
+               fetchUserData(userId);  // ตรวจสอบว่าผู้ใช้ลงทะเบียนแล้วหรือไม่
            }
        })
        .catch(err => {
@@ -136,6 +135,55 @@
                confirmButtonText: 'ตกลง'
            });
        });
+
+   // ฟังก์ชันตรวจสอบข้อมูลผู้ใช้จาก Google Script
+   function fetchUserData(userId) {
+       // ใช้ img tag หรือ script tag เพื่อหลีกเลี่ยง CORS
+       const url = "https://script.google.com/macros/s/AKfycbziwaFq0ZMdcmFrgNXVXvPLThTz1L5H1vip-dmbsNHIvD78xs01puhs0rYbaQjYfape/exec?userId=" + encodeURIComponent(userId) + "&callback=handleUserData";
+       
+       // สร้าง script element สำหรับ JSONP
+       const script = document.createElement('script');
+       script.src = url;
+       script.onerror = function() {
+           console.log("ไม่พบข้อมูลผู้ใช้ หรือเป็นผู้ใช้ใหม่");
+           isUserRegistered = false;
+           enableForm();
+       };
+       
+       // กำหนด timeout
+       setTimeout(() => {
+           if (!isUserRegistered) {
+               console.log("Timeout - สามารถลงทะเบียนได้");
+               enableForm();
+           }
+           if (document.head.contains(script)) {
+               document.head.removeChild(script);
+           }
+       }, 5000);
+       
+       document.head.appendChild(script);
+   }
+
+   // Callback function สำหรับ JSONP
+   window.handleUserData = function(data) {
+       try {
+           if (data && data.status === 'success' && data.user) {
+               console.log("พบข้อมูลผู้ใช้:", data.user);
+               isUserRegistered = true;
+               populateForm(data.user);
+               showRegisteredStatus(data.user);
+               disableForm();
+           } else {
+               console.log("ไม่พบข้อมูลผู้ใช้");
+               isUserRegistered = false;
+               enableForm();
+           }
+       } catch (error) {
+           console.log("Error processing user data");
+           isUserRegistered = false;
+           enableForm();
+       }
+   };
 
    // ฟังก์ชันแสดงสถานะว่าลงทะเบียนแล้ว
    function showRegisteredStatus(userData) {
