@@ -131,10 +131,15 @@ function populateForm(user) {
     document.getElementById("name").value = user.name || "";
     document.getElementById("employeeId").value = user.employeeId || "";
     document.getElementById("email").value = user.email || "";
-    
-    document.getElementById("status").checked = user.status === true || user.status === "true";
-    document.getElementById("project").checked = user.project === true || user.project === "true";
-    document.getElementById("fives").checked = user.fives === true || user.fives === "true";
+    document.getElementById("status").checked =
+  (user.status === true || user.status === "true" || user.status === "TRUE");
+
+document.getElementById("project").checked =
+  (user.project === true || user.project === "true" || user.project === "TRUE");
+
+document.getElementById("fives").checked =
+  (user.fives === true || user.fives === "true" || user.fives === "TRUE");
+
 }
 
 // เมื่อกด submit
