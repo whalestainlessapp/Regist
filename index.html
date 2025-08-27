@@ -61,23 +61,33 @@
    <input type="email" id="email" name="email" placeholder="กรอกอีเมล...">
 
    <!-- ฟิลด์ใหม่ (boolean) -->
-   <label for="status">Status:</label>
-   <select id="status" name="status" required>
-       <option value="true">true</option>
-       <option value="false">false</option>
-   </select>
+   <!-- Status -->
+<div class="form-group">
+  <label for="status">Status</label>
+  <label class="switch">
+    <input type="checkbox" id="status" name="status" value="true">
+    <span class="slider round"></span>
+  </label>
+</div>
 
-   <label for="project">Project:</label>
-   <select id="project" name="project" required>
-       <option value="true">true</option>
-       <option value="false">false</option>
-   </select>
+<!-- Project -->
+<div class="form-group">
+  <label for="project">Project</label>
+  <label class="switch">
+    <input type="checkbox" id="project" name="project" value="true">
+    <span class="slider round"></span>
+  </label>
+</div>
 
-   <label for="fives">5S:</label>
-   <select id="fives" name="fives" required>
-       <option value="true">true</option>
-       <option value="false">false</option>
-   </select>
+<!-- Fives -->
+<div class="form-group">
+  <label for="fives">Fives</label>
+  <label class="switch">
+    <input type="checkbox" id="fives" name="fives" value="true">
+    <span class="slider round"></span>
+  </label>
+</div>
+
 
    <button type="submit" id="submitBtn">บันทึกข้อมูล</button>
 </form>
