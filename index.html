@@ -126,61 +126,63 @@
    }
 
    // เติมข้อมูลลงฟอร์ม
-   function populateForm(user) {
-       document.getElementById("department").value = user.department || "";
-       document.getElementById("name").value = user.name || "";
-       document.getElementById("employeeId").value = user.employeeId || "";
-       document.getElementById("email").value = user.email || "";
-       document.getElementById("status").value = user.status ? "true" : "false";
-       document.getElementById("project").value = user.project ? "true" : "false";
-       document.getElementById("fives").value = user.fives ? "true" : "false";
-   }
+function populateForm(user) {
+    document.getElementById("department").value = user.department || "";
+    document.getElementById("name").value = user.name || "";
+    document.getElementById("employeeId").value = user.employeeId || "";
+    document.getElementById("email").value = user.email || "";
+    
+    document.getElementById("status").checked = user.status === true || user.status === "true";
+    document.getElementById("project").checked = user.project === true || user.project === "true";
+    document.getElementById("fives").checked = user.fives === true || user.fives === "true";
+}
 
-   // เมื่อกด submit
-   document.getElementById("registerForm").addEventListener("submit", function(event) {
-       event.preventDefault();
+// เมื่อกด submit
+document.getElementById("registerForm").addEventListener("submit", function(event) {
+    event.preventDefault();
 
-       const data = {
-           displayName: displayName,
-           userId: userId,
-           pictureUrl: pictureUrl,
-           department: document.getElementById("department").value,
-           name: document.getElementById("name").value,
-           employeeId: document.getElementById("employeeId").value,
-           email: document.getElementById("email").value,
-           status: document.getElementById("status").value === "true",
-           project: document.getElementById("project").value === "true",
-           fives: document.getElementById("fives").value === "true",
-           timestamp: new Date().toLocaleString("th-TH"),
-           update: isUserRegistered   // ถ้าเคยมีข้อมูลแล้วจะเป็นการอัปเดต
-       };
+    const data = {
+        displayName: displayName,
+        userId: userId,
+        pictureUrl: pictureUrl,
+        department: document.getElementById("department").value,
+        name: document.getElementById("name").value,
+        employeeId: document.getElementById("employeeId").value,
+        email: document.getElementById("email").value,
+        status: document.getElementById("status").checked,
+        project: document.getElementById("project").checked,
+        fives: document.getElementById("fives").checked,
+        timestamp: new Date().toLocaleString("th-TH"),
+        update: isUserRegistered
+    };
 
-       fetch("https://script.google.com/macros/s/AKfycbziwaFq0ZMdcmFrgNXVXvPLThTz1L5H1vip-dmbsNHIvD78xs01puhs0rYbaQjYfape/exec", {
-           method: "POST",
-           mode: "no-cors",
-           headers: { "Content-Type": "application/json" },
-           body: JSON.stringify(data)
-       })
-       .then(() => {
-           Swal.fire({
-               title: 'สำเร็จ',
-               text: isUserRegistered ? 'แก้ไขข้อมูลเรียบร้อยแล้ว' : 'ลงทะเบียนเรียบร้อยแล้ว',
-               icon: 'success',
-               confirmButtonText: 'ปิด'
-           }).then(() => {
-               liff.closeWindow();
-           });
-       })
-       .catch(error => {
-           console.error("Error:", error);
-           Swal.fire({
-               title: 'เกิดข้อผิดพลาด',
-               text: 'ไม่สามารถบันทึกข้อมูลได้',
-               icon: 'error',
-               confirmButtonText: 'ตกลง'
-           });
-       });
-   });
+    fetch("https://script.google.com/macros/s/AKfycbziwaFq0ZMdcmFrgNXVXvPLThTz1L5H1vip-dmbsNHIvD78xs01puhs0rYbaQjYfape/exec", {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+    })
+    .then(() => {
+        Swal.fire({
+            title: 'สำเร็จ',
+            text: isUserRegistered ? 'แก้ไขข้อมูลเรียบร้อยแล้ว' : 'ลงทะเบียนเรียบร้อยแล้ว',
+            icon: 'success',
+            confirmButtonText: 'ปิด'
+        }).then(() => {
+            liff.closeWindow();
+        });
+    })
+    .catch(error => {
+        console.error("Error:", error);
+        Swal.fire({
+            title: 'เกิดข้อผิดพลาด',
+            text: 'ไม่สามารถบันทึกข้อมูลได้',
+            icon: 'error',
+            confirmButtonText: 'ตกลง'
+        });
+    });
+});
+
 </script>
 
 </body>
